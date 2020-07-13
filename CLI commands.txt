@@ -1,0 +1,189 @@
+start zookeeper:
+---------------
+C:\software\kafka_2.12-2.5.0>zookeeper-server-start.bat config\zookeeper.properties
+
+start kafka:
+-----------
+C:\software\kafka_2.12-2.5.0>kafka-server-start.bat config\server.properties
+
+create a topic
+--------------
+kafka-topics --zookeeper localhost:2181 --topic first_topic --create --partitions 3 --replication-factor 1
+
+list topics
+------------
+kafka-topics --zookeeper localhost:2181 --list
+
+describe a topic
+----------------
+C:\Users\sakempeg>kafka-topics --zookeeper localhost:2181 --topic first_topic --describe
+Topic: first_topic      PartitionCount: 3       ReplicationFactor: 1    Configs:
+        Topic: first_topic      Partition: 0    Leader: 0       Replicas: 0     Isr: 0
+        Topic: first_topic      Partition: 1    Leader: 0       Replicas: 0     Isr: 0
+        Topic: first_topic      Partition: 2    Leader: 0       Replicas: 0     Isr: 0
+
+C:\Users\sakempeg>
+Here Leader: 0 inidcates broker Id 0 is the leader of the partitions. ( broker 0 is registered as shown in the log)
+[2020-06-16 15:36:25,810] INFO Registered broker 0 at path /brokers/ids/0 with addresses: ArrayBuffer(EndPoint(SAKEMPEG-1RZZD.partnet.cisco.com,9092,ListenerName(PLAINTEXT),PLAINTEXT)), czxid (broker epoch): 36 (kafka.zk.KafkaZkClient)
+
+kafka-console-producer:
+----------------------
+C:\Users\sakempeg>kafka-console-producer --bootstrap-server 127.0.0.1:9092 --topic first_topic
+>Hello World!!!
+>learning kafka
+>awesome course
+>First message
+C:\Users\sakempeg>
+
+setting properties to a producer ( here we are adding acks property to producer)
+--------------------------------
+C:\Users\sakempeg>kafka-console-producer --bootstrap-server 127.0.0.1:9092 --topic first_topic --producer-property acks=all
+>adding properties to producer
+>setting acks
+>fun learning!!
+C:\Users\sakempeg>
+
+creating a topic through producer
+---------------------------------
+C:\Users\sakempeg>kafka-console-producer --bootstrap-server 127.0.0.1:9092 --topic topic_new
+>hey this topic does not exist !!
+[2020-06-16 16:17:53,338] WARN [Producer clientId=console-producer] Error while fetching metadata with correlation id 3 : {topic_new=LEADER_NOT_AVAILABLE} (org.apache.kafka.clients.NetworkClient)
+>try again !!
+C:\Users\sakempeg>
+
+NOTE: topic_new did not exist, so it created a new topic
+	  we got an error saying  topic_new=LEADER_NOT_AVAILABLE that means leader election is not happened yet
+	  As you know producers are able to recover from errors automatically, so producer just tried and waited until leader was avaliable and then it produced the msg
+	  
+C:\Users\sakempeg>kafka-topics --zookeeper localhost:2181 --topic topic_new --describe
+Topic: topic_new        PartitionCount: 1       ReplicationFactor: 1    Configs:
+        Topic: topic_new        Partition: 0    Leader: 0       Replicas: 0     Isr: 0
+
+C:\Users\sakempeg>
+
+NOTE:PartitionCount for  topic_new is 1 ,which is the default value.To change the default, change the value of num.partitions=1 in server.properties
+
+C:\Users\sakempeg>kafka-console-producer --bootstrap-server 127.0.0.1:9092 --topic topic_new_2
+>hi
+[2020-06-17 17:14:25,141] WARN [Producer clientId=console-producer] Error while fetching metadata with correlation id 3 : {topic_new_2=LEADER_NOT_AVAILABLE} (org.apache.kafka.clients.NetworkClient)
+>hello
+>wellcome!!
+C:\Users\sakempeg>
+
+C:\Users\sakempeg>kafka-topics --zookeeper localhost:2181 -topic topic_new_2 --describe
+Topic: topic_new_2      PartitionCount: 3       ReplicationFactor: 1    Configs:
+        Topic: topic_new_2      Partition: 0    Leader: 0       Replicas: 0     Isr: 0
+        Topic: topic_new_2      Partition: 1    Leader: 0       Replicas: 0     Isr: 0
+        Topic: topic_new_2      Partition: 2    Leader: 0       Replicas: 0     Isr: 0
+
+C:\Users\sakempeg>
+
+here we can see the partition count is 3 which is picked from num.partitions in server.properties
+
+kafka-consloe-consumer:
+-----------------------
+C:\Users\sakempeg>kafka-console-consumer --bootstrap-server 127.0.0.1:9092 --topic first_topic
+ohh i am producer
+this is awesome
+play play play
+Processed a total of 3 messages
+C:\Users\sakempeg>
+
+If you observe here consumer started consuming message that were sent after the consumer were created.
+
+To read all the messages or to read from the beggining we need to use below command
+C:\Users\sakempeg>kafka-console-consumer --bootstrap-server 127.0.0.1:9092 --topic first_topic -from-beginning
+awesome course
+adding properties to producer
+play play play
+Hello World!!!
+fun learning!!
+this is awesome
+learning kafka
+First message
+setting acks
+ohh i am producer
+reading from beginning
+cool working fine
+
+NOTE: Order in the msg in this consumer is not "total", the order is per partition.Because "first_topic" was ceated with 3 partitions, order is guaranteed at the partition level
+		If we try with 1 partition, then we can see total ordering
+		
+kafka-console-groups:
+--------------------
+C:\Users\sakempeg>kafka-console-consumer --bootstrap-server localhost:9092 --topic first_topic --group my_first_group
+
+NOTE: If you create multiple consumer within same group , then messages will be distrubuted to multiple consumer based on round robin fashion.
+
+kafka-console-consumer --bootstrap-server 127.0.0.1:9092 --topic first_topic --group my_second_group -from-beginning
+
+C:\Users\sakempeg>kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group my_second_group
+Consumer group 'my_second_group' has no active members.
+GROUP           TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID
+my_second_group first_topic     0          25              25              0               -               -               -
+my_second_group first_topic     1          15              15              0               -               -               -
+my_second_group first_topic     2          29              29              0               -               -               -
+C:\Users\sakempeg>
+
+Here we have one active consumer then if you describe the consumer group then you can see the following details
+C:\Users\sakempeg>kafka-consumer-groups --bootstrap-server 127.0.0.1:9092 --describe --group my_first_group
+GROUP           TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                                    HOST            CLIENT-ID
+my_first_group  first_topic     0          25              25              0               consumer-my_first_group-1-41212669-a54b-43b5-ae66-c1a7192dada8 /10.65.58.122   consumer-my_first_group-1
+my_first_group  first_topic     1          15              15              0               consumer-my_first_group-1-41212669-a54b-43b5-ae66-c1a7192dada8 /10.65.58.122   consumer-my_first_group-1
+my_first_group  first_topic     2          29              29              0               consumer-my_first_group-1-41212669-a54b-43b5-ae66-c1a7192dada8 /10.65.58.122   consumer-my_first_group-1
+C:\Users\sakempeg>
+
+NOTE: Here all the partitions are being read by the same consumer with same consumer id (consumer-my_first_group-1-41212669-a54b-43b5-ae66-c1a7192dada8)
+
+Now we have three active consumer then if you describe the consumer group then you can see the following details
+C:\Users\sakempeg>kafka-consumer-groups --bootstrap-server 127.0.0.1:9092 --describe --group my_first_group
+GROUP           TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                                    HOST            CLIENT-ID
+my_first_group  first_topic     0          25              25              0               consumer-my_first_group-1-41212669-a54b-43b5-ae66-c1a7192dada8 /10.65.58.122   consumer-my_first_group-1
+my_first_group  first_topic     1          15              15              0               consumer-my_first_group-1-41212669-a54b-43b5-ae66-c1a7192dada8 /10.65.58.122   consumer-my_first_group-1
+my_first_group  first_topic     2          29              29              0               consumer-my_first_group-1-4b47e26a-b508-4d35-9f1f-8f0398123233 /10.65.58.122   consumer-my_first_group-1
+C:\Users\sakempeg>
+
+NOTE: Here each partition is read by different consumer 
+
+Resetting offsets:
+------------------
+--reset-offsets --to-earliest:
+------------------------------
+C:\Users\sakempeg>kafka-consumer-groups --bootstrap-server 127.0.0.1:9092 --group my_first_group --reset-offsets --to-earliest --execute --topic first_topic
+GROUP                          TOPIC                          PARTITION  NEW-OFFSET
+my_first_group                 first_topic                    0          0
+my_first_group                 first_topic                    1          0
+my_first_group                 first_topic                    2          0
+C:\Users\sakempeg>
+
+Now if you run the consumer it will read all the msgs in the topic since we have reset the offset to earliest ( earliest will set offset to 0) 
+C:\Users\sakempeg>kafka-console-consumer --bootstrap-server 127.0.0.1:9092 --topic first_topic --group my_first_group
+
+--reset-offsets --shift-by:
+--------------------------
+C:\Users\sakempeg>kafka-consumer-groups --bootstrap-server 127.0.0.1:9092 --describe --group my_first_group
+Consumer group 'my_first_group' has no active members.
+GROUP           TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID
+my_first_group  first_topic     0          25              25              0               -               -               -
+my_first_group  first_topic     1          15              15              0               -               -               -
+my_first_group  first_topic     2          29              29              0               -               -               -
+C:\Users\sakempeg>kafka-consumer-groups --bootstrap-server 127.0.0.1:9092 --group my_first_group --reset-offsets --shift-by -3 --execute --topic first_topic
+GROUP                          TOPIC                          PARTITION  NEW-OFFSET
+my_first_group                 first_topic                    0          22
+my_first_group                 first_topic                    1          12
+my_first_group                 first_topic                    2          26
+C:\Users\sakempeg>
+
+--reset-offsets --to-offset:
+----------------------------
+C:\Users\sakempeg>kafka-consumer-groups --bootstrap-server localhost:9092 --group my_first_group --reset-offsets --to-offset 15 --execute --topic first_topic
+Error: Assignments can only be reset if the group 'my_first_group' is inactive, but the current state is Stable.
+GROUP                          TOPIC                          PARTITION  NEW-OFFSET
+
+--reset-offsets --to-latest:
+----------------------------
+C:\Users\sakempeg>kafka-consumer-groups --bootstrap-server localhost:9092 --group my_first_group --reset-offsets --to-latest --execute --topic first_topic
+Error: Assignments can only be reset if the group 'my_first_group' is inactive, but the current state is Stable.
+GROUP                          TOPIC                          PARTITION  NEW-OFFSET
+C:\Users\sakempeg>
+																																																																																																																																																																																																																																																																																																																																																																																																		

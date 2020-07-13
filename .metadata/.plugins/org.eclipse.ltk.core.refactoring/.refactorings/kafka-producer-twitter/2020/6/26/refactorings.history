@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring accessors="true" comment="Delete element from project &apos;kafka-producer-twitter&apos;&#x0D;&#x0A;- Original project: &apos;kafka-producer-twitter&apos;&#x0D;&#x0A;- Original element: &apos;kafka-producer-twitter/src/main/java/com.learning.kafka.kafka_producer_twitter&apos;" description="Delete element" element1="/src\/main\/java&lt;com.learning.kafka.kafka_producer_twitter" element2="/src\/main\/java&lt;com.learning.kafka" element3="/src\/main\/java&lt;com.learning" elements="3" flags="589830" id="org.eclipse.jdt.ui.delete" resources="0" stamp="1593172915205" subPackages="false" version="1.0"/>
+</session>

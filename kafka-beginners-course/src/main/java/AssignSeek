@@ -1,0 +1,2 @@
+assign and seek are mostly used to replay data or fetch a specific message without using a group id.
+Topic name and partition number is used to fetch messages
